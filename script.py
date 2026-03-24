@@ -1,4 +1,5 @@
 import os
+import sys
 import re
 import time
 import winsound
@@ -7,7 +8,13 @@ import pytesseract
 from tqdm import tqdm
 
 # --- RUTAS ---
-DIRECTORIO_BASE = os.path.dirname(os.path.abspath(__file__))
+if getattr(sys, 'frozen', False):
+    # Si es un .exe, directorio base es donde está el propio .exe
+    DIRECTORIO_BASE = os.path.dirname(sys.executable)
+else:
+    # Si es un .py normal, directorio base es donde está el script
+    DIRECTORIO_BASE = os.path.dirname(os.path.abspath(__file__))
+
 CARPETA_PDFS = os.path.join(DIRECTORIO_BASE, 'documentos_pdf')
 CARPETA_SALIDA = os.path.join(DIRECTORIO_BASE, 'documentos_txt')
 RUTA_POPPLER = os.path.join(DIRECTORIO_BASE, r'poppler-25.12.0\Library\bin')
@@ -15,7 +22,7 @@ RUTA_POPPLER = os.path.join(DIRECTORIO_BASE, r'poppler-25.12.0\Library\bin')
 # --- CONFIGURACIÓN DE TESSERACT ---
 pytesseract.pytesseract.tesseract_cmd = os.path.join(DIRECTORIO_BASE, r'Tesseract-OCR\tesseract.exe')
 
-def procesar_diccionario_a_txt(pdf_path, txt_path):
+def convertir_pdf_a_txt(pdf_path, txt_path):
     nombre_archivo = os.path.basename(pdf_path)
     print(f"\n{'-'*50}")
     print(f"Procesando: {nombre_archivo}")
@@ -37,7 +44,7 @@ def procesar_diccionario_a_txt(pdf_path, txt_path):
             poppler_path=RUTA_POPPLER
         )[0]
         
-        texto_pagina = pytesseract.image_to_string(imagen_pagina, config='--psm 3', lang='spa')
+        texto_pagina = pytesseract.image_to_string(imagen_pagina, config='--psm 3', lang='spa+grc+lat')
         texto_completo += texto_pagina + "\n"
 
     print("\nLimpiando texto (uniendo líneas cortadas)...")
@@ -48,7 +55,7 @@ def procesar_diccionario_a_txt(pdf_path, txt_path):
     with open(txt_path, 'w', encoding='utf-8') as archivo_txt:
         archivo_txt.write(texto_limpio)
         
-    print(f"✅ ¡ÉXITO! Diccionario guardado en: {os.path.basename(txt_path)}")
+    print(f"✅ ¡ÉXITO! Documento guardado en: {os.path.basename(txt_path)}")
 
 def main():
     if not os.path.exists(CARPETA_SALIDA):
@@ -60,7 +67,7 @@ def main():
     print(f"¡Se han encontrado {total_archivos} documentos en la carpeta!")
 
     for indice, archivo in enumerate(archivos_pdf, start=1):
-        print(f"\n>>> DICCIONARIO {indice} DE {total_archivos} <<<")
+        print(f"\n>>> DOCUMENTO {indice} DE {total_archivos} <<<")
         ruta_pdf = os.path.join(CARPETA_PDFS, archivo)
         
         nombre_txt = archivo.replace('.pdf', '.txt')
@@ -71,7 +78,7 @@ def main():
             continue
         
         # Si no existe, lo procesamos
-        procesar_diccionario_a_txt(ruta_pdf, ruta_txt)
+        convertir_pdf_a_txt(ruta_pdf, ruta_txt)
         
         # Pitido para avisar de la finalización
         winsound.Beep(1000, 500)
